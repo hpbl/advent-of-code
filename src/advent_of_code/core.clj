@@ -205,21 +205,51 @@
 
 ; DAY 1
 ; Find the two entries that sum to 2020; what do you get if you multiply them together?
-
-(defn product-sums2020 [candidate list]
+(defn product-sums [candidate list cond]
   (if (empty? list)
     nil
-    (if (= 2020 (+ candidate (first list)))
+    (if (= cond (+ candidate (first list)))
       (* candidate (first list))
-      (product-sums2020 candidate (drop 1 list)))))
+      (recur candidate (drop 1 list) cond))))
 
-(defn find-product [entries]
-  (let [head (first entries)
-        tail (drop 1 entries)
-        result (product-sums2020 head tail)]
-    (if (some? result)
-      result
-      (find-product tail))))
+(defn find-pair-product [entries cond]
+  (if (empty? entries)
+    nil
+    (let [head (first entries)
+          tail (drop 1 entries)
+          result (product-sums head tail cond)]
+      (if (some? result)
+        result
+        (recur tail cond)))))
 
-(defn -main [& args]
-  (print (find-product input)))
+(find-pair-product input 2020)
+
+; --- Part Two ---
+; what is the product of the three entries that sum to 2020?
+(defn add-new-sum [sum->entries new-entry checked-entries]
+  ; for every entry in checked entries, add entry + new-entry to sum->entries
+  (let [new-entry-sums (map #(hash-map (+ new-entry %) [% new-entry]) checked-entries)
+        new-entry-sums-map (into {} new-entry-sums)]
+    (conj sum->entries new-entry-sums-map)))
+
+(defn find-trio [entries sum-cond]
+  (loop [[head & tail] entries
+         checked-entries #{}
+         sums->entries {}]
+
+    (cond
+      ; no more entries to check, return nil
+      (nil? head)
+      nil
+
+      ; is the complement of head already on the sums?, return entries and head
+      (contains? sums->entries (- sum-cond head))
+      (conj (sums->entries (- sum-cond head)) head)
+
+    ; update sums->entries with new checked entry and its sums
+      :else
+      (let [new-sums->entries (add-new-sum sums->entries head checked-entries)
+          new-checked-entries (conj checked-entries head)]
+        (recur tail new-checked-entries new-sums->entries)))))
+
+(reduce * (find-trio input 2020))
