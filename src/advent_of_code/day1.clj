@@ -1,4 +1,4 @@
-(ns advent-of-code.core)
+(ns advent-of-code.day1)
 
 (def input
   [1587
