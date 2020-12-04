@@ -1,13 +1,6 @@
 (ns advent-of-code.day2
-  (:require [clojure.java.io :as java.io]
+  (:require [advent-of-code.inputs.input-reader :as ir]
             [clojure.string :as str]))
-
-; Reads the txt and is accessible via "lines"
-(defmacro with-lines
-  [path & body]
-  `(with-open [rdr# (java.io/reader ~path)]
-     (let [~'lines (line-seq rdr#)]
-       ~@body)))
 
 ; How many passwords are valid according to their policies?
 (defn valid-password? [min-occurrences max-occurrences required-letter password]
@@ -23,7 +16,7 @@
 
 (defn read-and-validate [validation]
   (let [path "src/advent_of_code/inputs/day2.txt"]
-    (with-lines path
+    (ir/with-lines path
                 (->> lines
                      (filter (partial entry-has-valid-password? validation))
                      count))))

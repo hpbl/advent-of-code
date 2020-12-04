@@ -249,7 +249,7 @@
     ; update sums->entries with new checked entry and its sums
       :else
       (let [new-sums->entries (add-new-sum sums->entries head checked-entries)
-          new-checked-entries (conj checked-entries head)]
+            new-checked-entries (conj checked-entries head)]
         (recur tail new-checked-entries new-sums->entries)))))
 
 (reduce * (find-trio input 2020))
