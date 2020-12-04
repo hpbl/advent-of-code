@@ -18,7 +18,7 @@
   previous-position)
 
 ; Move according to the desired movement and update tree count and position
-(defn move-to-new-line [new-line current-stats]
+(defn move-to-new-line [current-stats new-line]
   (let [{previous-position :position previous-tree-count :tree-count} current-stats
         new-position (down-movement new-line (right-movement new-line previous-position))]
     {:tree-count (if (has-tree? new-line new-position)
@@ -26,23 +26,15 @@
                        previous-tree-count)
      :position new-position}))
 
-(defn move-to-exit [lines]
- (loop [index 1
-        stats {:tree-count 0 :position 0}]
-
-  (if (= index (count lines))
-    stats
-
-    (let [new-line (nth lines index)
-          new-stats (move-to-new-line new-line stats)]
-      (recur (inc index) new-stats)))))
-
+(defn move-to-exit [initial-stats lines]
+  (reduce move-to-new-line initial-stats lines))
 
 (defn read-and-move-to-exit []
-  (let [path "src/advent_of_code/inputs/day3.txt"]
+  (let [path "src/advent_of_code/inputs/day3.txt"
+        initial-stats {:tree-count 0 :position 0}]
     (ir/with-lines path
-                   (->> lines
-                        move-to-exit
+                   (->> (drop 1 lines)
+                        (move-to-exit initial-stats)
                         :tree-count))))
 
 (read-and-move-to-exit)
