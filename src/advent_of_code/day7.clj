@@ -10,11 +10,11 @@
     (map
       #(assoc
          {}
-         :amount (second %)
+         :amount (Integer/parseInt (second %))
          :color (nth % 2))
       matches)))
 
-(defn parse-rule [rule regex]
+(defn parse-rule [regex rule]
   (let [matches (re-matches regex rule)
         outer-bag (second matches)
         inner-bags (nth matches 2)]
@@ -53,7 +53,7 @@
             (recur new-candidate-colors new-visited-colors))))))))
 
 (defn count-colors-can-contain [desired-color rules]
-  (let [parsed-rules (map #(parse-rule % rule-regex) rules)]
+  (let [parsed-rules (map #(parse-rule rule-regex %) rules)]
     (loop [index 0
            color-count 0]
 
@@ -74,3 +74,41 @@
                  (->> lines
                       (count-colors-can-contain "shiny gold"))))
 (part-1)
+
+
+; PART 2
+; How many individual bags are required inside your single shiny gold bag?
+(defn get-rule-for-bag-color [bag-color parsed-rules]
+  (first (filter #(= (:outer %) bag-color) parsed-rules)))
+
+(defn count-inner-bags [bag-color parsed-rules]
+  (let [bag-rule (get-rule-for-bag-color bag-color parsed-rules)
+        inner-bags (:inner-bags bag-rule)]
+
+    (cond
+      (nil? bag-rule)
+      0
+
+      :else
+      (reduce
+        (fn [current-sum inner-bag]
+          (+
+            current-sum
+            (:amount inner-bag)
+            (* (:amount inner-bag) (count-inner-bags (:color inner-bag) parsed-rules))))
+        0
+        inner-bags))))
+
+(defn part-2 []
+  (ir/with-lines "src/advent_of_code/inputs/day7.txt"
+                 (->> lines
+                      (map (partial parse-rule rule-regex))
+                      (count-inner-bags "shiny gold"))))
+(part-2)
+
+
+
+
+
+
+
