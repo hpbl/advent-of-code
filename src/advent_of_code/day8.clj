@@ -48,7 +48,6 @@
 (part-1)
 
 ; Part 2
-
 (defn replace-possible-looping-instruction [parsed-looping-program possible-looping-instruction-index]
   (let [possible-looping-instruction (nth parsed-looping-program possible-looping-instruction-index)]
     (case (:operator possible-looping-instruction)
@@ -83,21 +82,3 @@
                       fix-looping-program)))
 
 (part-2)
-
-;(def lines [
-;            "nop +0"
-;            "acc +1"
-;            "jmp +4"
-;            "acc +3"
-;            "jmp -3"
-;            "acc -99"
-;            "acc +1"
-;            "jmp -4"
-;            "acc +6"
-;            ])
-;(def parsed-looping-program (map parse-instruction lines))
-;(def execution (parse-and-execute lines))
-;(def execution-order (:visited-indexes execution))
-;(apply max execution-order)
-;(def new-program (replace-max-executed-instruction-with-nop parsed-looping-program execution-order))
-;(execute new-program)
