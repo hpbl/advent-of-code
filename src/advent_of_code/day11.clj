@@ -37,58 +37,197 @@
 (defn seat? [position plane]
     (or (empty-seat? position plane)  (occupied-seat? position plane)))
 
-(defn existing-adjacent-seats [seat plane]
+(defn existing-immediately-adjacent-seats [seat plane]
   (let [row-count (count plane)
         col-count (count (first plane))
         adjacent-positions-in-plane (filter #(position-in-plane? % row-count col-count) (adjacent-positions seat))]
     (filter #(seat? % plane) adjacent-positions-in-plane)))
 
 ; If a seat is empty (L) and there are no occupied seats adjacent to it, the seat becomes occupied.
-(defn empty-seat-rule? [seat plane]
-  (let [adjacent-seats (existing-adjacent-seats seat plane)
-        empty-adjacent-seats (filter #(empty-seat? % plane) adjacent-seats)]
+(defn empty-seat-rule? [seat plane adj-func]
+  (let [adjacent-seats (adj-func seat plane)
+        occupied-adjacent-seats (filter #(occupied-seat? % plane) adjacent-seats)]
     (and
       (empty-seat? seat plane)
-      (= (count empty-adjacent-seats) (count adjacent-seats)))))
+      (= (count occupied-adjacent-seats) 0))))
 
 ; If a seat is occupied (#) and four or more seats adjacent to it are also occupied, the seat becomes empty.
-(defn occupied-seat-rule? [seat plane]
-  (let [adjacent-seats (existing-adjacent-seats seat plane)
+(defn occupied-seat-rule? [seat plane threshold adj-func]
+  (let [adjacent-seats (adj-func seat plane)
         occupied-adjacent-seats (filter #(occupied-seat? % plane) adjacent-seats)]
     (and
       (occupied-seat? seat plane)
-      (>= (count occupied-adjacent-seats) 4))))
+      (>= (count occupied-adjacent-seats) threshold))))
 
-(defn line-next-state [row line plane]
+(defn line-next-state [row line plane occ-threshold adj-func]
   (map-indexed (fn [col seat]
          (cond
-           (empty-seat-rule? {:col col :row row} plane) \#
-           (occupied-seat-rule? {:col col :row row} plane) \L
+           (empty-seat-rule? {:col col :row row} plane adj-func) \#
+           (occupied-seat-rule? {:col col :row row} plane occ-threshold adj-func) \L
            :else seat))
        line))
 
-(defn next-state [plane]
+(defn next-state [plane occ-threshold adj-func]
   (map-indexed (fn [row line]
-                 (line-next-state row line plane))
+                 (line-next-state row line plane occ-threshold adj-func))
                plane))
 
-(defn simulate-until-balance [plane]
+(defn simulate-until-balance [plane occ-threshold adj-func]
   (loop [prev-plane plane]
-    (let [cur-plane (next-state prev-plane)]
+    (let [cur-plane (next-state prev-plane occ-threshold adj-func)]
       (if (= prev-plane cur-plane)
         cur-plane
         (recur cur-plane)))))
 
 
-(defn count-occupied-seats [plane]
+(defn count-occupied-seats [plane occ-threshold adj-func]
   (->> plane
-       simulate-until-balance
+       (#(simulate-until-balance % occ-threshold adj-func))
        (map #(count (filter #{\#} %)))
        (apply +)))
 
 (defn part-1 []
   (ir/with-lines "src/advent_of_code/inputs/day11.txt"
                  (->> lines
-                      count-occupied-seats)))
+                      (#(count-occupied-seats % 4 existing-immediately-adjacent-seats)))))
 
-(time (part-1))
+; Part 2
+; Instead of considering just the eight immediately adjacent seats, consider the first seat in each of those eight directions.
+;(def input [
+;            ".......#."
+;            "...#....."
+;            ".#......."
+;            "........."
+;            "..#L....#"
+;            "....#...."
+;            "........."
+;            "#........"
+;            "...#....."
+;            ])
+
+(defn left-adjacent-seat [{:keys [row col]} plane]
+    (loop [index (dec col)]
+      (cond
+        ; No left adjacent
+        (= index -1)
+        nil
+
+        (seat? {:row row :col index} plane)
+        {:row row :col index}
+
+        :else
+        (recur (dec index)))))
+
+(defn right-adjacent-seat [{:keys [row col]} plane]
+    (loop [index (inc col)]
+      (cond
+        ; No right adjacent
+        (= index (count (first plane)))
+        nil
+
+        (seat? {:row row :col index} plane)
+        {:row row :col index}
+
+        :else
+        (recur (inc index)))))
+
+(defn top-adjacent-seat [{:keys [row col]} plane]
+  (loop [index (dec row)]
+    (cond
+      ; No top adjacent
+      (= index -1)
+      nil
+
+      (seat? {:row index :col col} plane)
+      {:row index :col col}
+
+      :else
+      (recur (dec index)))))
+
+(defn bottom-adjacent-seat [{:keys [row col]} plane]
+  (loop [index (inc row)]
+    (cond
+      ; No bottom adjacent
+      (= index (count plane))
+      nil
+
+      (seat? {:row index :col col} plane)
+      {:row index :col col}
+
+      :else
+      (recur (inc index)))))
+
+(defn top-left-adjacent-seat [{:keys [row col]} plane]
+  (loop [current-col (dec col)
+         current-row (dec row)]
+    (cond
+      ; No top-left adjacent
+      (or (= current-col -1) (= current-row -1))
+      nil
+
+      (seat? {:row current-row :col current-col} plane)
+      {:row current-row :col current-col}
+
+      :else
+      (recur (dec current-col) (dec current-row)))))
+
+(defn top-right-adjacent-seat [{:keys [row col]} plane]
+  (loop [current-col (inc col)
+         current-row (dec row)]
+    (cond
+      ; No top-left adjacent
+      (or (= current-col (count (first plane))) (= current-row -1))
+      nil
+
+      (seat? {:row current-row :col current-col} plane)
+      {:row current-row :col current-col}
+
+      :else
+      (recur (inc current-col) (dec current-row)))))
+
+(defn bottom-right-adjacent-seat [{:keys [row col]} plane]
+  (loop [current-col (inc col)
+         current-row (inc row)]
+    (cond
+      ; No top-left adjacent
+      (or (= current-col (count (first plane))) (= current-row (count plane)))
+      nil
+
+      (seat? {:row current-row :col current-col} plane)
+      {:row current-row :col current-col}
+
+      :else
+      (recur (inc current-col) (inc current-row)))))
+
+(defn bottom-left-adjacent-seat [{:keys [row col]} plane]
+  (loop [current-col (dec col)
+         current-row (inc row)]
+    (cond
+      ; No top-left adjacent
+      (or (= current-col -1) (= current-row (count plane)))
+      nil
+
+      (seat? {:row current-row :col current-col} plane)
+      {:row current-row :col current-col}
+
+      :else
+      (recur (dec current-col) (inc current-row)))))
+
+(defn existing-adjacent-seats [seat plane]
+  (let [left (left-adjacent-seat seat plane)
+        top-left (top-left-adjacent-seat seat plane)
+        right (right-adjacent-seat seat plane)
+        top-right (top-right-adjacent-seat seat plane)
+        top (top-adjacent-seat seat plane)
+        down (bottom-adjacent-seat seat plane)
+        down-left (bottom-left-adjacent-seat seat plane)
+        down-right (bottom-right-adjacent-seat seat plane)]
+    (remove nil? [left top-left right top-right top down down-left down-right])))
+
+(defn part-2 []
+  (ir/with-lines "src/advent_of_code/inputs/day11.txt"
+                 (->> lines
+                      (#(count-occupied-seats % 5 existing-adjacent-seats)))))
+
+(part-2)
+;(print *e)
