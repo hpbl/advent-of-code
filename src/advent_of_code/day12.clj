@@ -14,19 +14,18 @@
 (defn direction? [action]
   (contains? (set directions) action))
 
-(defn new-direction-index [current-direction action amount]
+(defn new-direction-index [action amount current-direction]
   (let [current-direction-index (.indexOf directions current-direction)]
     (if (= action \L)
       (mod (- current-direction-index (/ amount 90)) (count directions))
       (mod (+ current-direction-index (/ amount 90)) (count directions)))))
 
-
 (defn change-direction [movements action amount]
-  (let [current-direction (:current-direction movements)
-        new-direction-index (new-direction-index current-direction action amount)
-        new-direction (nth directions new-direction-index)
-        movements-with-new-direction (assoc movements :current-direction new-direction)]
-    movements-with-new-direction))
+  (->> movements
+       :current-direction
+       (new-direction-index action amount)
+       (nth directions)
+       (assoc movements :current-direction)))
 
 (defn move [movements {:keys [action amount]}]
   (cond
